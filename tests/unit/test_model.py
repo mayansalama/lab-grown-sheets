@@ -97,3 +97,16 @@ class TestModel(TestCase):
 
         for ct in id_ct.values():
             assert ct == 1
+
+    def test_model_generation_unique_many_to_many(self):
+        many_to_many_unique = deepcopy(basic_model)
+        many_to_many_unique[2][1]['relations'] = [{'name': 'order', 'type': 'many_to_many', 'unique': True}]
+
+        model = StarSchemaModel.from_list(many_to_many_unique)
+        model.generate_all_datasets()
+        datasets = model.datasets
+
+        order_items = datasets['order_item']
+        order_ids = [order_item_vals['order_id'] for order_item_vals in order_items.values()]
+        assert len(order_ids) == 10
+        assert len(set(order_ids)) == 10

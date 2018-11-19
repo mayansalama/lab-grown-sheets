@@ -5,11 +5,12 @@ from typing import Dict
 import networkx
 
 from labgrownsheets.profilers import *
+from labgrownsheets.model_mixins.save_datasets import SaveDatasetsMixin
 
 NUM_DOTS = 20
 
 
-class StarSchemaModel:
+class StarSchemaModel(SaveDatasetsMixin):
     ##################################################################
     # Init and props
     ##################################################################

@@ -15,7 +15,7 @@ def json_serial(obj):
     raise TypeError("Type %s not serializable" % type(obj))
 
 
-class Savers:
+class SaveDatasetsMixin:
 
     ##################################################################
     # Save File
