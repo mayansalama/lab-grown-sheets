@@ -17,7 +17,3 @@ class Relation:
         return Relation(d['name'],
                         d.get('type'),
                         d.get("unique"))
-
-    @property
-    def id(self):
-        return self.name + "_id"

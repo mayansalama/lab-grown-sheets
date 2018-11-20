@@ -110,3 +110,35 @@ class TestModel(TestCase):
         order_ids = [order_item_vals['order_id'] for order_item_vals in order_items.values()]
         assert len(order_ids) == 10
         assert len(set(order_ids)) == 10
+
+    def test_model_generation_with_schema(self):
+        # basic_model_has_int
+        model = StarSchemaModel.from_list(basic_model)
+        model.generate_all_datasets()
+        datasets = model.datasets
+
+        orders = datasets['order']
+        for order in orders.values():
+            assert isinstance(order['order_amount'], int)
+
+        type_change = deepcopy(basic_model)
+        type_change[1][1]['schema'] = [{'name': 'order_amount', 'type': float}]
+        model = StarSchemaModel.from_list(type_change)
+        model.generate_all_datasets()
+        datasets = model.datasets
+
+        orders = datasets['order']
+        for order in orders.values():
+            assert isinstance(order['order_amount'], float)
+
+    def test_model_with_different_primary_key(self):
+        pk = deepcopy(basic_model)
+        pk[1][1]['schema'] = [{'name': 'orders_key', 'primary_key': True}]
+        model = StarSchemaModel.from_list(pk)
+        model.generate_all_datasets()
+        datasets = model.datasets
+
+        orders = datasets['order']
+        for order in orders.values():
+            assert order["orders_key"] is not None
+            assert not order.get('order_id')

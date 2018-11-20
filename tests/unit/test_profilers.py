@@ -10,8 +10,7 @@ base_dict = lambda: {
     'num_iterations': 1,
     'relations': [{'name': 'test2'},
                   {'name': 'test3', 'type': 'many_to_many', 'unique': True},
-                  Relation("test4")],
-    'schema': ['TODO']
+                  Relation("test4")]
 }
 
 

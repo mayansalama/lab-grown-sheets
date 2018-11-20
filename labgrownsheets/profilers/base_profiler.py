@@ -14,7 +14,7 @@ class BaseProfiler(ABC):
             num_entities_per_iteration = 1
         self.num_entities_per_iteration = num_entities_per_iteration
         self.relations = relations
-        self.schema = schema
+        self.schema = schema or []
 
     @classmethod
     def init_handler(cls, val):
@@ -35,19 +35,17 @@ class BaseProfiler(ABC):
 
     @schema.setter
     def schema(self, schema):
-        if schema:
-            if isinstance(schema, list):
-                self._schema = Schema.from_list(schema)
-            else:
-                self._schema = schema
+        if isinstance(schema, list):
+            self._schema = Schema.from_list(schema)
         else:
-            self._schema = None
+            self._schema = schema  # duck typing
 
     @property
     def id(self):
-        if self.schema:
-            return self.schema.get_primary_key()
-        return self.name + "_id"
+        key = self.schema.get_primary_key()
+        if not key:
+            return self.name + "_id"
+        return key
 
     ############################################################################
     # Relation handling

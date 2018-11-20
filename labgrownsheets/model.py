@@ -11,6 +11,7 @@ NUM_DOTS = 20
 
 
 class StarSchemaModel(SaveDatasetsMixin):
+
     ##################################################################
     # Init and props
     ##################################################################
@@ -82,16 +83,27 @@ class StarSchemaModel(SaveDatasetsMixin):
     # Create Entities
     ##################################################################
 
+    def apply_schema_types_to_row(self, row_dict, schema):
+        for field in schema.fields:
+            if field.name in row_dict:
+                row_dict[field.name] = field.type(row_dict[field.name])
+        return row_dict
+
+    def get_de_normalised_data_points(self, entity, parent, parent_dataset):
+        parent_fields = entity.schema.get_fields_for_parent(parent)
+        parent_data = {str(f): parent_dataset[str(f)] for f in parent_fields}
+        return parent_data
+
     def generate_entity_data(self, entity, datasets, num_iterations, print_progress):
         milestones = [int(i * num_iterations / NUM_DOTS) for i in range(1, NUM_DOTS + 1)]
 
         ents = {}
-        relation_id_lists = {rel.id: list(datasets[rel.name].keys()) for rel in entity.relations}
+        relation_id_lists = {rel.name: list(datasets[rel.name].keys()) for rel in entity.relations}
 
         one_to_ones = {}
         for relation in entity.one_to_many_relations:  # Same per fact per instance, but uniquely sampled
             if relation.unique:
-                one_to_ones[relation.id] = random.sample(relation_id_lists[relation.id], num_iterations)
+                one_to_ones[relation.name] = random.sample(relation_id_lists[relation.name], num_iterations)
 
         for i in range(num_iterations):
             for mile in milestones:
@@ -101,17 +113,20 @@ class StarSchemaModel(SaveDatasetsMixin):
             base = {}
             for relation in entity.one_to_many_relations:  # These will be the same per fact per instance
                 if relation.unique:
-                    base[relation.id] = one_to_ones[relation.id][i]
+                    rel_id = one_to_ones[relation.name][i]
                 else:
-                    base[relation.id] = random.sample(relation_id_lists[relation.id], 1)[0]  # Not unique
+                    rel_id = random.sample(relation_id_lists[relation.name], 1)[0]  # Not unique
+                rel_id_name = self.entity_dict[relation.name].id
+                base[rel_id_name] = rel_id
+                base.update(self.get_de_normalised_data_points(entity, relation.name, datasets[relation.name][rel_id]))
 
             num_facts = entity.num_entities_per_iteration
             many_to_many_ids = {}
             for rel in entity.many_to_many_relations:  # These will be the same per fact
                 if rel.unique:
-                    many_to_many_ids[rel.id] = random.sample(relation_id_lists[rel.id], num_facts)
+                    many_to_many_ids[rel.name] = random.sample(relation_id_lists[rel.name], num_facts)
                 else:
-                    many_to_many_ids[rel.id] = [random.sample(relation_id_lists[rel.id], 1)[0]
+                    many_to_many_ids[rel.name] = [random.sample(relation_id_lists[rel.name], 1)[0]
                                                 for i in range(num_facts)]
 
             for j in range(num_facts):
@@ -122,10 +137,14 @@ class StarSchemaModel(SaveDatasetsMixin):
                 inst = {entity.id: uid}
                 inst.update(base)
 
-                for relation in entity.many_to_many_relations:
-                    inst[relation.id] = many_to_many_ids[relation.id].pop(0)
+                for rel in entity.many_to_many_relations:
+                    rel_id = many_to_many_ids[rel.name].pop(0)
+                    rel_id_name = self.entity_dict[rel.name].id
+                    inst[rel_id_name] = rel_id
+                    inst.update(self.get_de_normalised_data_points(entity, rel.name, datasets[rel.name][rel_id]))
 
                 inst.update(entity.gen())
+                inst = self.apply_schema_types_to_row(inst, entity.schema)
                 ents[uid] = inst
 
         if print_progress:
