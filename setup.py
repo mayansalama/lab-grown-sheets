@@ -1,8 +1,8 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(name='lab-grown-sheets',
       version='0.1',
       description='Various helpful tools',
-      package_dir={'': 'labgrownsheets'},
+      packages = find_packages(),
       install_requires=['networkx>=1.11'],
       zip_safe=False)
