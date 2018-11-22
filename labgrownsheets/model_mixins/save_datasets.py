@@ -25,7 +25,7 @@ class SaveDatasetsMixin:
         if path and not os.path.exists(path):
             os.makedirs(path)
 
-    def to_csv(self, path):
+    def to_csv(self, path=''):
         self.create_path(path)
         for name, uids in self.datasets.items():
             with open(os.path.join(path, name + ".csv"), "w+") as f:
@@ -38,13 +38,13 @@ class SaveDatasetsMixin:
 
                     wr.writerow(list(row.values()))
 
-    def to_json(self, path):
+    def to_json(self, path=''):
         self.create_path(path)
         for name, uids in self.datasets.items():
             with open(os.path.join(path, name + ".json"), "w+") as f:
                 json.dump(list(uids.values()), f, default=json_serial)
 
-    def to_schemas(self, path):
+    def to_schemas(self, path=''):
         self.create_path(path)
         for name, uids in self.datasets.items():
             with open(os.path.join(path, name + ".schema"), "wb") as f:

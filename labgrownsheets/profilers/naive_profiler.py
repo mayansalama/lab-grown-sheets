@@ -20,5 +20,5 @@ class NaiveProfiler(BaseProfiler):
     def gen(self, val):
         self._gen = self._check_if_gen(val)
 
-    def generate_entity(self):
+    def generate_entity(self, *args, **kwargs):
         return self.gen()

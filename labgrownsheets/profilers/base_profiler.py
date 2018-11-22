@@ -113,7 +113,7 @@ class BaseProfiler(ABC):
     ############################################################################
 
     @abstractmethod
-    def generate_entity(self):
+    def generate_entity(self, *args, **kwargs):
         pass
 
     @classmethod

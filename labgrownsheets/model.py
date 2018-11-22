@@ -143,7 +143,7 @@ class StarSchemaModel(SaveDatasetsMixin):
                     inst[rel_id_name] = rel_id
                     inst.update(self.get_de_normalised_data_points(entity, rel.name, datasets[rel.name][rel_id]))
 
-                inst.update(entity.gen())
+                inst.update(entity.generate_entity())
                 inst = self.apply_schema_types_to_row(inst, entity.schema)
                 ents[uid] = inst
 
