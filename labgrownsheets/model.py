@@ -128,12 +128,13 @@ class StarSchemaModel(SaveDatasetsMixin):
                 else:
                     many_to_many_ids[rel.name] = [random.sample(relation_id_lists[rel.name], 1)[0]
                                                 for i in range(num_facts)]
-
+            uid = None
             for j in range(num_facts):
-                while True:  # Get a unique id for this instance
-                    uid = str(uuid.uuid4())[-12:]  # 36 ** 12 is max num entities...
-                    if uid not in ents:
-                        break
+                if not (uid and entity.preserve_id_across_its):  # Only make once if SCD Type 2
+                    while True:  # Get a unique id for this instance
+                        uid = str(uuid.uuid4())[-12:]  # 36 ** 12 is max num entities...
+                        if uid not in ents:
+                            break
                 inst = {entity.id: uid}
                 inst.update(base)
 
@@ -146,6 +147,7 @@ class StarSchemaModel(SaveDatasetsMixin):
                 inst.update(entity.generate_entity())
                 inst = self.apply_schema_types_to_row(inst, entity.schema)
                 ents[uid] = inst
+                entity.reset()
 
         if print_progress:
             print(" DONE")

@@ -1,6 +1,7 @@
 from labgrownsheets.profilers.naive_profiler import NaiveProfiler
 from labgrownsheets.profilers.base_profiler import BaseProfiler
 from labgrownsheets.profilers.sampling_profiler import SamplingProfiler
+from labgrownsheets.profilers.base_scd_profiler import BaseScdProfiler
 
 
 def str_to_class(class_name):

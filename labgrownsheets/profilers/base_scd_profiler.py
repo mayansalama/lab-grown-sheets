@@ -45,16 +45,16 @@ class BaseScdProfiler:
     @property
     def mutating_cols(self):
         mutating_cols = self.profiler.kwds.get('mutating_cols', [])
-        mutating_cols = set(*mutating_cols, *self.profiler.schema.mutating_cols)
+        mutating_cols = set(mutating_cols) | {f.name for f in self.profiler.schema.mutating_cols}
         return mutating_cols or "all"
 
     def generate_entity(self, *args, **kwargs):
-        if self.reset():
+        if self._reset:
             self._reset = False
             self._last_res = self.profiler.generate_entity(*args, **kwargs)
             return self._last_res
         else:
             new_res = self.profiler.generate_entity(*args, **kwargs)
             mutating_cols = self.mutating_cols
-            return {k: new_res[k] if v in mutating_cols or mutating_cols == "all" else v
+            return {k: new_res[k] if k in mutating_cols or mutating_cols == "all" else v
                     for k, v in self._last_res.items()}

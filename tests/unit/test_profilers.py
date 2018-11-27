@@ -1,3 +1,4 @@
+import random
 from unittest import TestCase
 
 from labgrownsheets.profilers import *
@@ -91,3 +92,64 @@ class TestNaiveProfiler(TestCase):
         gen_ent: NaiveProfiler = str_to_class("NaiveProfiler").init_handler(d)
         assert gen_ent.generate_entity() == 0
         assert gen_ent.generate_entity() == 1
+
+
+scd_num_ents = 10000
+scd_mutate_rate = 0.1
+
+
+class TestSCDType2Profiler(TestCase):
+
+    def test_generation(self):
+        d = base_dict()
+        d['mutation_rate'] = scd_mutate_rate
+        d['num_iterations'] = scd_num_ents
+
+        from_dict: NaiveProfiler = str_to_class("NaiveProfiler").init_handler(d)
+
+        assert not hasattr(from_dict, '_reset')
+        assert not from_dict.preserve_id_across_its
+
+        scd_type2 = BaseScdProfiler(from_dict)
+        assert hasattr(scd_type2, '_reset')
+        assert scd_type2.preserve_id_across_its
+
+        # Assert that we are generating approx correct number of mutations
+        num_ents_per_it = [scd_type2.num_entities_per_iteration() for i in range(scd_num_ents)]
+        mean = 1 / scd_mutate_rate
+        actual_mean = sum(num_ents_per_it) / len(num_ents_per_it)
+
+        assert abs((mean - actual_mean) / mean) < 0.01  # 1% tol
+
+    def test_mutating_cols_behaviour(self):
+        d = base_dict()
+        d['mutation_rate'] = scd_mutate_rate
+        d['num_iterations'] = scd_num_ents
+        d['entity_generator'] = lambda: {'col1': random.random(), 'col2': random.random(), 'col3': random.random()}
+
+        from_dict: NaiveProfiler = str_to_class("NaiveProfiler").init_handler(d)
+        scd_type2 = BaseScdProfiler(from_dict)
+
+        # Test default "all" behaviour mutates all columns
+        res1 = scd_type2.generate_entity()
+        res2 = scd_type2.generate_entity()
+        res3 = scd_type2.generate_entity()
+
+        for k in res1:
+            assert res1[k] != res2[k]
+            assert res1[k] != res3[k]
+
+        # We can also specify in schema or in the input dictionary
+        d['mutating_cols'] = ['col2']
+        d['schema'] = [{'name': 'col3', 'mutating': True}]
+
+        from_dict: NaiveProfiler = str_to_class("NaiveProfiler").init_handler(d)
+        scd_type2 = BaseScdProfiler(from_dict)
+
+        res1 = scd_type2.generate_entity()
+        res2 = scd_type2.generate_entity()
+        res3 = scd_type2.generate_entity()
+
+        assert res1['col1'] == res2['col1'] and res1['col1'] == res3['col1']
+        assert res1['col2'] != res2['col2'] and res1['col2'] != res3['col2'] and res2['col2'] != res3['col2']
+        assert res1['col3'] != res2['col3'] and res1['col3'] != res3['col3'] and res2['col3'] != res3['col3']
