@@ -134,6 +134,7 @@ class StarSchemaModel(SaveDatasetsMixin):
                     while True:  # Get a unique id for this instance
                         uid = str(uuid.uuid4())[-12:]  # 36 ** 12 is max num entities...
                         if uid not in ents:
+                            ents[uid] = []
                             break
                 inst = {entity.id: uid}
                 inst.update(base)
@@ -146,7 +147,8 @@ class StarSchemaModel(SaveDatasetsMixin):
 
                 inst.update(entity.generate_entity())
                 inst = self.apply_schema_types_to_row(inst, entity.schema)
-                ents[uid] = inst
+                ents[uid].append(inst)
+
                 entity.reset()
 
         if print_progress:

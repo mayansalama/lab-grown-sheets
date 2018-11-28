@@ -5,4 +5,6 @@ setup(name='lab-grown-sheets',
       description='Various helpful tools',
       packages = find_packages(),
       install_requires=['networkx>=1.11', 'numpy>=1.15'],
+      setup_requires=["pytest-runner"],
+      tests_require=["pytest"],
       zip_safe=False)

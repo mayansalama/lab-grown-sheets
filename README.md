@@ -6,5 +6,10 @@ A model consists of a collection of profilers, which have a 1:1 correspondence t
 table. A profiler is responsible for creating entities, and stores additional info
 defining the tables relations (parent entities and denormalised columns) and schema.
 
-See examples on how a model can be constructed to build a basic star schema data 
+See examples for demonstrations on how a model can be constructed to build a basic star schema data 
 structure.
+
+### Testing
+```
+sh run_test.sh
+```

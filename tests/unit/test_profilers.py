@@ -78,11 +78,11 @@ class TestBaseProfiler(TestCase):
 
 class TestNaiveProfiler(TestCase):
 
-    def test_func_entity_generator(self):
+    def test_entity_generator__function(self):
         func_ent: NaiveProfiler = str_to_class("NaiveProfiler").init_handler(base_dict())
         assert func_ent.generate_entity() == {'col1': 'always1'}
 
-    def test_generator_entity_generator(self):
+    def test_entity_generator__generator(self):
         def gen():
             for i in range(10):
                 yield (i)
@@ -119,7 +119,7 @@ class TestSCDType2Profiler(TestCase):
         mean = 1 / scd_mutate_rate
         actual_mean = sum(num_ents_per_it) / len(num_ents_per_it)
 
-        assert abs((mean - actual_mean) / mean) < 0.01  # 1% tol
+        assert abs((mean - actual_mean) / mean) < 0.05  # 5% tol
 
     def test_mutating_cols_behaviour(self):
         d = base_dict()

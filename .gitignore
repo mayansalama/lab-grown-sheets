@@ -3,3 +3,4 @@
 examples/sample-data/
 **/__pycache__/
 *.egg-info/
+.eggs/
