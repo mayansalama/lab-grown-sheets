@@ -18,14 +18,22 @@ class BaseProfiler(ABC):
         self.schema = schema or []
         self.kwds = kwds
 
+    def base_arg_list(self):
+        return {'name': self.name,
+                'num_iterations': self.num_iterations,
+                'num_entities_per_iteration': self._num_facts_per_iter,
+                'relations': self.relations,
+                'schema': self.schema,
+                'kwds': self.kwds}
+
     @classmethod
-    def init_handler(cls, val):
-        if isinstance(val, dict):
-            return cls.from_dict(val)
-        elif isinstance(val, list):
-            return cls.from_list(val)
+    def init_handler(cls, init_vals):
+        if isinstance(init_vals, dict):
+            return cls.from_dict(init_vals)
+        elif isinstance(init_vals, list):
+            return cls.from_list(init_vals)
         else:  # Duck typing
-            return val
+            return init_vals
 
     ############################################################################
     # Schema handling

@@ -4,7 +4,8 @@ from typing import Dict
 
 import networkx
 
-from labgrownsheets.profilers import *
+from labgrownsheets.profilers import resolve_profiler
+from labgrownsheets.profilers.base_profiler import BaseProfiler
 from labgrownsheets.mixins.model.save_datasets import SaveDatasetsMixin
 
 NUM_DOTS = 20
@@ -31,7 +32,7 @@ class StarSchemaModel(SaveDatasetsMixin):
     @classmethod
     def from_list(cls, l):
         # This is a list of tuples = (profiler type, values)
-        return StarSchemaModel([str_to_class(val[0]).init_handler(val[1]) for val in l])
+        return StarSchemaModel([resolve_profiler(val[0], val[1]) for val in l])
 
     ##################################################################
     # DAG Handling
@@ -145,11 +146,9 @@ class StarSchemaModel(SaveDatasetsMixin):
                     inst[rel_id_name] = rel_id
                     inst.update(self.get_de_normalised_data_points(entity, rel.name, datasets[rel.name][rel_id]))
 
-                inst.update(entity.generate_entity())
+                inst.update(entity.generate_entity(datasets, **inst))
                 inst = self.apply_schema_types_to_row(inst, entity.schema)
                 ents[uid].append(inst)
-
-                entity.reset()
 
         if print_progress:
             print(" DONE")

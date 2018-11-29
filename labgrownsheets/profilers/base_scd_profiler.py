@@ -1,60 +1,81 @@
-from numpy.random import geometric
+import datetime
+from copy import deepcopy
 
-from labgrownsheets.profilers import BaseProfiler
+from numpy.random import geometric, uniform
+
+from labgrownsheets.profilers.base_profiler import BaseProfiler
+
+DEFAULT_HIGH_DATE = datetime.datetime(9999, 12, 31, 23, 59, 59, 999999)
+DEFAULT_MIN_VALID_FROM = datetime.datetime.now() - datetime.timedelta(days=365)
+DEFAULT_MAX_VALID_FROM = datetime.datetime.now()
 
 
-class BaseScdProfiler:
+class ScdProfiler(BaseProfiler):
 
     #############################################
     # Base Profiler methods
-    # TODO() Put in valid from/to handlers via Relation "mutation object"
     #############################################
 
     def __init__(self, profiler):
-        self.profiler: BaseProfiler = profiler
-        self.yield_num_ents = profiler.num_iterations
-        self._reset = True
+        self.profiler = profiler
+        self._num_ents = 1
+
+        base_arg_list = profiler.base_arg_list()
+        base_arg_list['num_entities_per_iteration'] = self.yield_num_ents
+        super().__init__(**base_arg_list)
+
+        self.mutation_rate = float(self.kwds['mutation_rate'])
+        self.min_valid_from = self.kwds.get('min_valid_from', DEFAULT_MIN_VALID_FROM)
+        self.max_valid_from = self.kwds.get('max_valid_from', DEFAULT_MAX_VALID_FROM)
+        self.high_date = self.kwds.get('high_date', DEFAULT_HIGH_DATE)
+        self.mutating_cols = self.get_mutating_cols()
+
+        self.next_valid_from_to = self.yield_valid_froms()
+        self.next_is_new_ent = self.yield_is_new_entity()
 
     @property
     def preserve_id_across_its(self):
         return True
 
-    def reset(self):
-        self._reset = True
-
-    @property
-    def yield_num_ents(self):
-        return self._gen_ents
-
-    @yield_num_ents.setter
-    def yield_num_ents(self, num_its):
-        self._gen_ents = iter(geometric(self.mutation_rate, num_its))
-
-    def num_entities_per_iteration(self):
-        return next(self.yield_num_ents)
+    def get_mutating_cols(self):
+        mutating_cols = self.kwds.get('mutating_cols', [])
+        mutating_cols = set(mutating_cols) | {f.name for f in self.schema.mutating_cols}
+        return mutating_cols or "all"
 
     #############################################
     # CDC Handling
     #############################################
 
-    @property
-    def mutation_rate(self):
-        rate = self.profiler.kwds['mutation_rate']
-        return float(rate)
+    def yield_num_ents(self):
+        for i in geometric(1 - self.mutation_rate, self.num_iterations):
+            self._num_ents = int(i)
+            yield (int(i))
 
-    @property
-    def mutating_cols(self):
-        mutating_cols = self.profiler.kwds.get('mutating_cols', [])
-        mutating_cols = set(mutating_cols) | {f.name for f in self.profiler.schema.mutating_cols}
-        return mutating_cols or "all"
+    def yield_valid_froms(self):
+        while True:
+            rng = sorted(uniform(self.min_valid_from.timestamp(), self.max_valid_from.timestamp(), self._num_ents))
+            for x in range(len(rng) - 1):
+                yield datetime.datetime.fromtimestamp(rng[x]), datetime.datetime.fromtimestamp(rng[x + 1])
+            yield datetime.datetime.fromtimestamp(rng[-1]), self.high_date
+
+    def yield_is_new_entity(self):
+        while True:
+            for i in range(self._num_ents):
+                yield i == 0
+
+    def is_new_entity(self):
+        return next(self.next_is_new_ent)
 
     def generate_entity(self, *args, **kwargs):
-        if self._reset:
-            self._reset = False
-            self._last_res = self.profiler.generate_entity(*args, **kwargs)
-            return self._last_res
+        if self.is_new_entity():
+            res = self.profiler.generate_entity(*args, **kwargs)
+            self._last_res = deepcopy(res)
         else:
             new_res = self.profiler.generate_entity(*args, **kwargs)
-            mutating_cols = self.mutating_cols
-            return {k: new_res[k] if k in mutating_cols or mutating_cols == "all" else v
-                    for k, v in self._last_res.items()}
+            res = {k: new_res[k] if k in self.mutating_cols or self.mutating_cols == "all" else v
+                   for k, v in self._last_res.items()}
+
+        vf, vt = next(self.next_valid_from_to)
+        res['valid_from_timestamp'] = vf
+        res['valid_to_timestamp'] = vt
+        return res

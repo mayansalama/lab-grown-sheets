@@ -3,7 +3,7 @@ import random
 from enum import Enum
 from typing import Dict, List
 
-from labgrownsheets.profilers import base_profiler
+from labgrownsheets.profilers.base_profiler import BaseProfiler
 
 
 class ReadableType(Enum):
@@ -38,7 +38,7 @@ filetype_to_data = {
 }
 
 
-class SamplingProfiler(base_profiler.BaseProfiler):
+class SamplingProfiler(BaseProfiler):
 
     def __init__(self, file_path, file_type=None, sample_cols=None, *args, **kwargs):
         self.file_path = file_path

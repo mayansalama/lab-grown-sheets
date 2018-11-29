@@ -1,7 +1,8 @@
 import random
 from unittest import TestCase
 
-from labgrownsheets.profilers import *
+from labgrownsheets.profilers import ScdProfiler, NaiveProfiler, str_to_class
+from labgrownsheets.profilers.base_scd_profiler import DEFAULT_HIGH_DATE
 from labgrownsheets.relations.schema import Schema
 from labgrownsheets.relations.relation import Relation, RelationType
 
@@ -95,7 +96,7 @@ class TestNaiveProfiler(TestCase):
 
 
 scd_num_ents = 10000
-scd_mutate_rate = 0.1
+scd_mutate_rate = 0.9  # Mutate 90% of the time
 
 
 class TestSCDType2Profiler(TestCase):
@@ -107,16 +108,14 @@ class TestSCDType2Profiler(TestCase):
 
         from_dict: NaiveProfiler = str_to_class("NaiveProfiler").init_handler(d)
 
-        assert not hasattr(from_dict, '_reset')
         assert not from_dict.preserve_id_across_its
 
-        scd_type2 = BaseScdProfiler(from_dict)
-        assert hasattr(scd_type2, '_reset')
+        scd_type2 = ScdProfiler(from_dict)
         assert scd_type2.preserve_id_across_its
 
         # Assert that we are generating approx correct number of mutations
-        num_ents_per_it = [scd_type2.num_entities_per_iteration() for i in range(scd_num_ents)]
-        mean = 1 / scd_mutate_rate
+        num_ents_per_it = [scd_type2.num_entities_per_iteration for i in range(scd_num_ents)]
+        mean = 1 / (1 - scd_mutate_rate)
         actual_mean = sum(num_ents_per_it) / len(num_ents_per_it)
 
         assert abs((mean - actual_mean) / mean) < 0.05  # 5% tol
@@ -128,7 +127,8 @@ class TestSCDType2Profiler(TestCase):
         d['entity_generator'] = lambda: {'col1': random.random(), 'col2': random.random(), 'col3': random.random()}
 
         from_dict: NaiveProfiler = str_to_class("NaiveProfiler").init_handler(d)
-        scd_type2 = BaseScdProfiler(from_dict)
+        scd_type2 = ScdProfiler(from_dict)
+        scd_type2._num_ents = 3
 
         # Test default "all" behaviour mutates all columns
         res1 = scd_type2.generate_entity()
@@ -136,15 +136,22 @@ class TestSCDType2Profiler(TestCase):
         res3 = scd_type2.generate_entity()
 
         for k in res1:
-            assert res1[k] != res2[k]
-            assert res1[k] != res3[k]
+            if k not in ['valid_from_timestamp', 'valid_to_timestamp']:
+                assert res1[k] != res2[k]
+                assert res1[k] != res3[k]
+
+        assert res1['valid_from_timestamp'] < res1['valid_to_timestamp']
+        assert res1['valid_to_timestamp'] == res2['valid_from_timestamp']
+        assert res2['valid_to_timestamp'] == res3['valid_from_timestamp']
+        assert res3['valid_to_timestamp'] == DEFAULT_HIGH_DATE
 
         # We can also specify in schema or in the input dictionary
         d['mutating_cols'] = ['col2']
         d['schema'] = [{'name': 'col3', 'mutating': True}]
 
         from_dict: NaiveProfiler = str_to_class("NaiveProfiler").init_handler(d)
-        scd_type2 = BaseScdProfiler(from_dict)
+        scd_type2 = ScdProfiler(from_dict)
+        scd_type2._num_ents = 3
 
         res1 = scd_type2.generate_entity()
         res2 = scd_type2.generate_entity()

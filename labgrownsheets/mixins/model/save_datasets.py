@@ -49,7 +49,7 @@ class SaveDatasetsMixin:
         self.create_path(path)
         for name, uids in self.datasets.items():
             with open(os.path.join(path, name + ".schema"), "wb") as f:
-                first_row = next(iter(uids.values()[0]))
+                first_row = next(iter(uids.values()))[0]
                 schema = {}
                 for name, val in first_row.items():
                     schema[name] = type(val)

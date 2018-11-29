@@ -7,8 +7,10 @@ TEST_SIZE = 1000
 
 
 def customer_gen():
-    for name in range(TEST_SIZE):
+    name = 0
+    while True:
         yield {'name': name}
+        name += 1
 
 
 def order_gen():
@@ -147,3 +149,17 @@ class TestModel(TestCase):
             for order in orders:
                 assert order["orders_key"] is not None
                 assert not order.get('order_id')
+
+    def test_model_with_scd_type2_parent_has_links(self):
+        scd = deepcopy(basic_model)
+        scd[0] = ('naive_type2_scd', {'name': 'customer',
+                                      'num_iterations': TEST_SIZE,
+                                      'entity_generator': customer_gen,
+                                      'mutation_rate': 0.9})
+        model = StarSchemaModel.from_list(scd)
+        model.generate_all_datasets()
+        datasets = model.datasets
+
+        for orders in datasets['order'].values():
+            for order_val in orders:
+                assert order_val['customer_id'] in datasets['customer']
