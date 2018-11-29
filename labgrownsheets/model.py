@@ -4,8 +4,9 @@ from typing import Dict
 
 import networkx
 
-from labgrownsheets.profilers import *
-from labgrownsheets.model_mixins.save_datasets import SaveDatasetsMixin
+from labgrownsheets.profilers import resolve_profiler
+from labgrownsheets.profilers.base_profiler import BaseProfiler
+from labgrownsheets.mixins.model.save_datasets import SaveDatasetsMixin
 
 NUM_DOTS = 20
 
@@ -31,7 +32,7 @@ class StarSchemaModel(SaveDatasetsMixin):
     @classmethod
     def from_list(cls, l):
         # This is a list of tuples = (profiler type, values)
-        return StarSchemaModel([str_to_class(val[0]).init_handler(val[1]) for val in l])
+        return StarSchemaModel([resolve_profiler(val[0], val[1]) for val in l])
 
     ##################################################################
     # DAG Handling
@@ -128,12 +129,14 @@ class StarSchemaModel(SaveDatasetsMixin):
                 else:
                     many_to_many_ids[rel.name] = [random.sample(relation_id_lists[rel.name], 1)[0]
                                                 for i in range(num_facts)]
-
+            uid = None
             for j in range(num_facts):
-                while True:  # Get a unique id for this instance
-                    uid = str(uuid.uuid4())[-12:]  # 36 ** 12 is max num entities...
-                    if uid not in ents:
-                        break
+                if not (uid and entity.preserve_id_across_its):  # Only make once if SCD Type 2
+                    while True:  # Get a unique id for this instance
+                        uid = str(uuid.uuid4())[-12:]  # 36 ** 12 is max num entities...
+                        if uid not in ents:
+                            ents[uid] = []
+                            break
                 inst = {entity.id: uid}
                 inst.update(base)
 
@@ -143,9 +146,9 @@ class StarSchemaModel(SaveDatasetsMixin):
                     inst[rel_id_name] = rel_id
                     inst.update(self.get_de_normalised_data_points(entity, rel.name, datasets[rel.name][rel_id]))
 
-                inst.update(entity.generate_entity())
+                inst.update(entity.generate_entity(datasets, **inst))
                 inst = self.apply_schema_types_to_row(inst, entity.schema)
-                ents[uid] = inst
+                ents[uid].append(inst)
 
         if print_progress:
             print(" DONE")

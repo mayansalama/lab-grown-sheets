@@ -7,7 +7,8 @@ from labgrownsheets.relations.schema import Schema
 
 class BaseProfiler(ABC):
 
-    def __init__(self, name, num_iterations, num_entities_per_iteration=None, relations=None, schema=None):
+    def __init__(self, name, num_iterations, num_entities_per_iteration=None, relations=None, schema=None,
+                 kwds=None):
         self.name = name
         self.num_iterations = num_iterations
         if not num_entities_per_iteration:
@@ -15,15 +16,24 @@ class BaseProfiler(ABC):
         self.num_entities_per_iteration = num_entities_per_iteration
         self.relations = relations
         self.schema = schema or []
+        self.kwds = kwds
+
+    def base_arg_list(self):
+        return {'name': self.name,
+                'num_iterations': self.num_iterations,
+                'num_entities_per_iteration': self._num_facts_per_iter,
+                'relations': self.relations,
+                'schema': self.schema,
+                'kwds': self.kwds}
 
     @classmethod
-    def init_handler(cls, val):
-        if isinstance(val, dict):
-            return cls.from_dict(val)
-        elif isinstance(val, list):
-            return cls.from_list(val)
+    def init_handler(cls, init_vals):
+        if isinstance(init_vals, dict):
+            return cls.from_dict(init_vals)
+        elif isinstance(init_vals, list):
+            return cls.from_list(init_vals)
         else:  # Duck typing
-            return val
+            return init_vals
 
     ############################################################################
     # Schema handling
@@ -48,8 +58,15 @@ class BaseProfiler(ABC):
         return key
 
     ############################################################################
-    # Relation handling
+    # Relation and scd handling
     ############################################################################
+
+    @property
+    def preserve_id_across_its(self):
+        return False
+
+    def reset(self):
+        pass
 
     @property
     def relations(self):
@@ -128,7 +145,8 @@ class BaseProfiler(ABC):
                 'num_iterations': num_iterations,
                 'num_entities_per_iteration': num_entities_per_iteration,
                 'relations': relations,
-                'schema': schema}
+                'schema': schema,
+                'kwds': d}
 
     @classmethod
     def from_dict(cls, d):  # Optional to implement

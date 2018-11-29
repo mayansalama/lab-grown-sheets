@@ -2,7 +2,7 @@ from typing import List
 
 
 class SchemaField:
-    def __init__(self, name, type=None, primary_key=False, parent_entity=None):
+    def __init__(self, name, type=None, primary_key=False, parent_entity=None, mutating=False):
         self.name = name
         if not type:
             self.type = lambda x: x
@@ -10,6 +10,7 @@ class SchemaField:
             self.type = type
         self.primary_key = primary_key
         self.parent_entity = parent_entity
+        self.mutating = mutating
 
     def __str__(self):
         return self.name
@@ -19,12 +20,13 @@ class SchemaField:
         return SchemaField(d['name'],
                            d.get('type'),
                            d.get('primary_key'),
-                           d.get('parent_entity'))
+                           d.get('parent_entity'),
+                           d.get('mutating'))
 
 
 class Schema:
     def __init__(self, schema_fields):
-        self.fields: List(SchemaField) = schema_fields
+        self.fields: List[SchemaField] = schema_fields
 
     def __bool__(self):
         return len(self.fields) != 0
@@ -49,3 +51,7 @@ class Schema:
 
     def get_fields_for_parent(self, parent):
         return [f for f in self.fields if f.parent_entity == parent]
+
+    @property
+    def mutating_cols(self):
+        return [f for f in self.fields if f.mutating]

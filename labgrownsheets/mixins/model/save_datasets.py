@@ -31,24 +31,25 @@ class SaveDatasetsMixin:
             with open(os.path.join(path, name + ".csv"), "w+") as f:
                 wr = csv.writer(f)
                 headers = True
-                for row in uids.values():
-                    if headers:
-                        headers = False
-                        wr.writerow(list(row.keys()))
+                for rows in uids.values():
+                    for row in rows:
+                        if headers:
+                            headers = False
+                            wr.writerow(list(row.keys()))
 
-                    wr.writerow(list(row.values()))
+                        wr.writerow(list(row.values()))
 
     def to_json(self, path=''):
         self.create_path(path)
         for name, uids in self.datasets.items():
             with open(os.path.join(path, name + ".json"), "w+") as f:
-                json.dump(list(uids.values()), f, default=json_serial)
+                json.dump([val for val in uids.values()], f, default=json_serial)
 
     def to_schemas(self, path=''):
         self.create_path(path)
         for name, uids in self.datasets.items():
             with open(os.path.join(path, name + ".schema"), "wb") as f:
-                first_row = next(iter(uids.values()))
+                first_row = next(iter(uids.values()))[0]
                 schema = {}
                 for name, val in first_row.items():
                     schema[name] = type(val)

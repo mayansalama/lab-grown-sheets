@@ -35,9 +35,10 @@ class TestSamplingProfiler(TestCase):
             dataset = gen.datasets['sampler_test']
 
             assert len(dataset) == 1000
-            for vals in dataset.values():
-                assert vals['col1'] == 'testing'
-                assert vals['col2'] == 'testing'
+            for list_vals in dataset.values():
+                for vals in list_vals:
+                    assert vals['col1'] == 'testing'
+                    assert vals['col2'] == 'testing'
 
     def test_partial_cols(self):
         with sample_file_with_cols(['col1', 'col2']) as x:
@@ -47,9 +48,10 @@ class TestSamplingProfiler(TestCase):
             dataset = gen.datasets['sampler_test']
 
             assert len(dataset) == 1000
-            for vals in dataset.values():
-                assert vals['col1']
-                assert 'col2' not in vals
+            for list_vals in dataset.values():
+                for vals in list_vals:
+                    assert vals['col1']
+                    assert 'col2' not in vals
 
     def test_invalid_cols(self):
         with sample_file_with_cols(['col1', 'col2'], val='testing') as x:

@@ -7,8 +7,10 @@ TEST_SIZE = 1000
 
 
 def customer_gen():
-    for name in range(TEST_SIZE):
+    name = 0
+    while True:
         yield {'name': name}
+        name += 1
 
 
 def order_gen():
@@ -64,19 +66,20 @@ class TestModel(TestCase):
 
         custs = datasets['customer']
         assert len(custs) == TEST_SIZE
-        assert {n['name'] for n in custs.values()} == {i for i in range(TEST_SIZE)}
+        assert {n['name'] for v in custs.values() for n in v} == {i for i in range(TEST_SIZE)}
 
         orders = datasets['order']
-        for order_id, order_vals in orders.items():
-            assert order_vals['customer_id'] in custs
+        for order_vals in orders.values():
+            for val in order_vals:
+                assert val['customer_id'] in custs
 
-        assert {n['order_amount'] for n in orders.values()} == {i for i in range(TEST_SIZE)}
+        assert {n['order_amount'] for v in orders.values() for n in v} == {i for i in range(TEST_SIZE)}
 
         order_items = datasets['order_item']
         assert len(order_items) == 10
-        y = {n['product_val'] for n in order_items.values()}
-        assert {n['product_val'] for n in order_items.values()} == {i for i in range(10)}
-        order_ids = [order_item_vals['order_id'] for order_item_vals in order_items.values()]
+        y = {n['product_val'] for v in order_items.values() for n in v}
+        assert {n['product_val'] for k in order_items.values() for n in k} == {i for i in range(10)}
+        order_ids = [n['order_id'] for v in order_items.values() for n in v]
         assert len(order_ids) == 10
         assert len(set(order_ids)) == 1
 
@@ -89,11 +92,12 @@ class TestModel(TestCase):
 
         id_ct = {}
         for cust_id in datasets['customer']:
-            for order_id, order_val in datasets['order'].items():
-                if cust_id in order_val['customer_id']:
-                    if not id_ct.get(cust_id):
-                        id_ct[cust_id] = 0
-                    id_ct[cust_id] += 1
+            for orders in datasets['order'].values():
+                for order_val in orders:
+                    if cust_id in order_val['customer_id']:
+                        if not id_ct.get(cust_id):
+                            id_ct[cust_id] = 0
+                        id_ct[cust_id] += 1
 
         for ct in id_ct.values():
             assert ct == 1
@@ -107,7 +111,7 @@ class TestModel(TestCase):
         datasets = model.datasets
 
         order_items = datasets['order_item']
-        order_ids = [order_item_vals['order_id'] for order_item_vals in order_items.values()]
+        order_ids = [order_item_vals['order_id'] for v in order_items.values() for order_item_vals in v]
         assert len(order_ids) == 10
         assert len(set(order_ids)) == 10
 
@@ -118,8 +122,9 @@ class TestModel(TestCase):
         datasets = model.datasets
 
         orders = datasets['order']
-        for order in orders.values():
-            assert isinstance(order['order_amount'], int)
+        for orders in orders.values():
+            for order in orders:
+                assert isinstance(order['order_amount'], int)
 
         type_change = deepcopy(basic_model)
         type_change[1][1]['schema'] = [{'name': 'order_amount', 'type': float}]
@@ -128,8 +133,9 @@ class TestModel(TestCase):
         datasets = model.datasets
 
         orders = datasets['order']
-        for order in orders.values():
-            assert isinstance(order['order_amount'], float)
+        for orders in orders.values():
+            for order in orders:
+                assert isinstance(order['order_amount'], float)
 
     def test_model_with_different_primary_key(self):
         pk = deepcopy(basic_model)
@@ -139,6 +145,21 @@ class TestModel(TestCase):
         datasets = model.datasets
 
         orders = datasets['order']
-        for order in orders.values():
-            assert order["orders_key"] is not None
-            assert not order.get('order_id')
+        for orders in orders.values():
+            for order in orders:
+                assert order["orders_key"] is not None
+                assert not order.get('order_id')
+
+    def test_model_with_scd_type2_parent_has_links(self):
+        scd = deepcopy(basic_model)
+        scd[0] = ('naive_type2_scd', {'name': 'customer',
+                                      'num_iterations': TEST_SIZE,
+                                      'entity_generator': customer_gen,
+                                      'mutation_rate': 0.9})
+        model = StarSchemaModel.from_list(scd)
+        model.generate_all_datasets()
+        datasets = model.datasets
+
+        for orders in datasets['order'].values():
+            for order_val in orders:
+                assert order_val['customer_id'] in datasets['customer']
