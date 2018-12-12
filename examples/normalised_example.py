@@ -4,7 +4,7 @@ import datetime
 
 from labgrownsheets.model import StarSchemaModel
 
-num_iterations = 100000
+num_iterations = 10000
 scale_factor = 4
 folder = 'sample-data'
 

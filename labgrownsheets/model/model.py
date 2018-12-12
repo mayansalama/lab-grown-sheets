@@ -1,17 +1,28 @@
+import os
+import csv
+import json
 import random
 import uuid
 from typing import Dict
+from datetime import datetime, date
 
 import networkx
 
 from labgrownsheets.profilers import resolve_profiler
 from labgrownsheets.profilers.base_profiler import BaseProfiler
-from labgrownsheets.mixins.model.save_datasets import SaveDatasetsMixin
 
 NUM_DOTS = 20
 
 
-class StarSchemaModel(SaveDatasetsMixin):
+def json_serial(obj):
+    """JSON serializer for objects not serializable by default json code"""
+
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    raise TypeError("Type %s not serializable" % type(obj))
+
+
+class StarSchemaModel:
 
     ##################################################################
     # Init and props
@@ -128,7 +139,7 @@ class StarSchemaModel(SaveDatasetsMixin):
                     many_to_many_ids[rel.name] = random.sample(relation_id_lists[rel.name], num_facts)
                 else:
                     many_to_many_ids[rel.name] = [random.sample(relation_id_lists[rel.name], 1)[0]
-                                                for i in range(num_facts)]
+                                                  for i in range(num_facts)]
             uid = None
             for j in range(num_facts):
                 if not (uid and entity.preserve_id_across_its):  # Only make once if SCD Type 2
@@ -153,3 +164,33 @@ class StarSchemaModel(SaveDatasetsMixin):
         if print_progress:
             print(" DONE")
         return ents
+
+    ##################################################################
+    # Save File
+    ##################################################################
+    @staticmethod
+    def create_path(path):
+        if path and not os.path.exists(path):
+            os.makedirs(path)
+
+    def to_csv(self, path=''):
+        self.create_path(path)
+
+        for name, uids in self.datasets.items():
+            with open(os.path.join(path, name + ".csv"), "w+") as f:
+                wr = csv.writer(f)
+                headers = True
+                for rows in uids.values():
+                    for row in rows:
+                        if headers:
+                            headers = False
+                            wr.writerow(list(row.keys()))
+
+                        wr.writerow(list(row.values()))
+
+    def to_json(self, path=''):
+        self.create_path(path)
+
+        for name, uids in self.datasets.items():
+            with open(os.path.join(path, name + ".json"), "w+") as f:
+                json.dump([val for val in uids.values()], f, default=json_serial)

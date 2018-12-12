@@ -1,7 +1,9 @@
+import yaml
+import os
 from copy import deepcopy
 from unittest import TestCase
 
-from labgrownsheets.model import StarSchemaModel
+from labgrownsheets.model import *
 
 TEST_SIZE = 1000
 
@@ -163,3 +165,46 @@ class TestModel(TestCase):
         for orders in datasets['order'].values():
             for order_val in orders:
                 assert order_val['customer_id'] in datasets['customer']
+
+
+class TestAdapters(TestCase):
+
+    def test_postgres_adapter(self):
+        model = StarSchemaModel.from_list(basic_model)
+        model.generate_all_datasets()
+
+        psa = PostgresSchemaAdapter(model)
+        psa.to_dbt_schema()
+
+        with open(psa.name + ".yml", 'r+') as f:
+            contents = yaml.load(f)
+
+        assert type(contents) == dict
+
+        assert contents == {
+            'customer': {'column_types': {'customer_id': 'text', 'name': 'int'}},
+            'order': {'column_types': {'customer_id': 'text', 'order_amount': 'int', 'order_id': 'text'}},
+            'order_item': {'column_types': {'order_id': 'text', 'order_item_id': 'text', 'product_val': 'int'}}
+        }
+
+        os.remove(psa.name + ".yml")
+
+    def test_big_query_adapter(self):
+        model = StarSchemaModel.from_list(basic_model)
+        model.generate_all_datasets()
+
+        bqa = BigquerySchemaAdapter(model)
+        bqa.to_dbt_schema()
+
+        with open(bqa.name + ".yml", 'r+') as f:
+            contents = yaml.load(f)
+
+        assert type(contents) == dict
+
+        assert contents == {
+            'customer': {'column_types': {'customer_id': 'string', 'name': 'integer'}},
+            'order': {'column_types': {'customer_id': 'string', 'order_amount': 'integer', 'order_id': 'string'}},
+            'order_item': {'column_types': {'order_id': 'string', 'order_item_id': 'string', 'product_val': 'integer'}}
+        }
+
+        os.remove(bqa.name + ".yml")

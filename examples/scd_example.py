@@ -76,7 +76,7 @@ def main():
             'name': 'customer',
             'entity_generator': generate_customer,
             'num_iterations': num_iterations,
-            'mutation_rate': 0.95,  # Will update mutate cols 30% of the time
+            'mutation_rate': 0.3,  # Will update mutate cols 30% of the time
             'mutating_cols': ['address']  # Only address will update
         }),
         ('naive', {
