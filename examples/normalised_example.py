@@ -4,7 +4,7 @@ import datetime
 
 from labgrownsheets.model import StarSchemaModel
 
-num_iterations = 10000
+num_iterations = 1000
 scale_factor = 4
 folder = 'sample-data'
 
@@ -150,7 +150,7 @@ def main():
     dummy_data = StarSchemaModel.from_list(schema)
     dummy_data.generate_all_datasets(print_progress=True)
     dummy_data.to_csv(folder)
-    dummy_data.to_schemas(folder)
+    dummy_data.to_pickled_pyschema(folder)
     print("Done")
 
 

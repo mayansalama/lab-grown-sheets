@@ -139,6 +139,27 @@ class TestModel(TestCase):
             for order in orders:
                 assert isinstance(order['order_amount'], float)
 
+    def test_model_generation_with_denormalised_data(self):
+        model = StarSchemaModel.from_list(basic_model)
+        model.generate_all_datasets()
+        datasets = model.datasets
+
+        orders = datasets['order']
+        for orders in orders.values():
+            for order in orders:
+                assert not order.get('name')
+
+        dd = deepcopy(basic_model)
+        dd[1][1]['schema'] = [{'name': 'name', 'parent_entity': 'customer'}]
+        model = StarSchemaModel.from_list(dd)
+        model.generate_all_datasets()
+        datasets = model.datasets
+
+        orders = datasets['order']
+        for orders in orders.values():
+            for order in orders:
+                assert order["name"] is not None
+
     def test_model_with_different_primary_key(self):
         pk = deepcopy(basic_model)
         pk[1][1]['schema'] = [{'name': 'orders_key', 'primary_key': True}]

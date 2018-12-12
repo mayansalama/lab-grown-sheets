@@ -95,7 +95,7 @@ def main():
     dummy_data = StarSchemaModel.from_list(schema)
     dummy_data.generate_all_datasets(print_progress=True)
     dummy_data.to_csv(folder)
-    dummy_data.to_schemas(folder)
+    dummy_data.to_pickled_pyschema(folder)
     print("Done")
 
 

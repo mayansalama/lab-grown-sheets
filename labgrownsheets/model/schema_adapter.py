@@ -1,6 +1,5 @@
 import os
 import yaml
-import pickle
 import datetime
 
 from labgrownsheets.model import StarSchemaModel
@@ -20,18 +19,6 @@ class BaseSchemaAdapter:
 
     def __init__(self, model):
         self.model = model
-
-    def to_pickled_pyschema(self, path=''):
-        StarSchemaModel.create_path(path)
-
-        # Get first row
-        for name, uids in self.model.datasets.items():
-            with open(os.path.join(path, name + ".schema"), "wb") as f:
-                first_row = next(iter(uids.values()))[0]
-                schema = {}
-                for name, val in first_row.items():
-                    schema[name] = type(val)
-                pickle.dump(schema, f)
 
     def to_dbt_schema(self, path='', name=''):
         """ Returns a dbt schema dict, which can be used by seed schemas

@@ -1,6 +1,7 @@
 import os
 import csv
 import json
+import pickle
 import random
 import uuid
 from typing import Dict
@@ -102,8 +103,9 @@ class StarSchemaModel:
         return row_dict
 
     def get_de_normalised_data_points(self, entity, parent, parent_dataset):
+        # Get denormalised points - note that for scd this will pick randomly
         parent_fields = entity.schema.get_fields_for_parent(parent)
-        parent_data = {str(f): parent_dataset[str(f)] for f in parent_fields}
+        parent_data = {str(f): random.choice(parent_dataset)[str(f)] for f in parent_fields}
         return parent_data
 
     def generate_entity_data(self, entity, datasets, num_iterations, print_progress):
@@ -194,3 +196,15 @@ class StarSchemaModel:
         for name, uids in self.datasets.items():
             with open(os.path.join(path, name + ".json"), "w+") as f:
                 json.dump([val for val in uids.values()], f, default=json_serial)
+
+    def to_pickled_pyschema(self, path=''):
+        self.create_path(path)
+
+        # Get first row
+        for name, uids in self.datasets.items():
+            with open(os.path.join(path, name + ".schema"), "wb") as f:
+                first_row = next(iter(uids.values()))[0]
+                schema = {}
+                for name, val in first_row.items():
+                    schema[name] = type(val)
+                pickle.dump(schema, f)
